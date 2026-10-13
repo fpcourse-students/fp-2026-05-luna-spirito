@@ -16,11 +16,17 @@ data Nat = Zero | Suc Nat
   deriving (Eq, Show)
 
 makeNat :: Int -> Nat
-makeNat = todo "2.1 make"
+makeNat = \case
+  0 -> Zero
+  x
+    | x < 0 -> error "negative"
+    | otherwise -> Suc $ makeNat $ x - 1
 
 foldNat :: (a -> a) -> a -> Nat -> a
-foldNat = todo "2.1 fold"
-
+foldNat s z = go where
+  go = \case
+    Zero -> z
+    Suc n -> s $ go n
 
 -- 2.2. Другое бинарное дерево.
 --
@@ -33,9 +39,13 @@ data BinTree a = Empty | BinNode (BinTree a) a (BinTree a)
   deriving (Eq, Show)
 
 mapBinTree :: (a -> b) -> BinTree a -> BinTree b
-mapBinTree = todo "2.2 map"
+mapBinTree f = go where
+  go = \case
+    Empty -> Empty
+    BinNode a b c -> BinNode (go a) (f b) (go c)
 
-bangAll t = todo "2.2 bang"
+bangAll :: BinTree (BinTree Int) -> BinTree (BinTree String)
+bangAll = mapBinTree (mapBinTree \x -> show x ++ "!")
 
 
 -- 2.3. Лексикографическое сравнение.
@@ -47,8 +57,10 @@ bangAll t = todo "2.2 bang"
 -- не передавайте целые списки стандартному (<) или compare.
 
 lexLess :: Ord a => [a] -> [a] -> Bool
-lexLess = todo "2.3"
-
+lexLess _ [] = False
+lexLess [] _ = True
+lexLess (x:xs) (y:ys) =
+  x < y || (x == y && lexLess xs ys)
 
 -- 2.4. Цифры.
 --
@@ -58,7 +70,17 @@ lexLess = todo "2.3"
 -- без перевода числа в строку.
 
 digits :: Int -> [Int]
-digits = todo "2.4"
+digits = \case
+  0 -> [0]
+  x
+    | x < 0 -> error "< 0"
+    | otherwise -> go [] x
+  where
+    go acc = \case
+      0 -> acc
+      n ->
+        let (a, b) = quotRem n 10
+        in go (b:acc) a
 
 
 -- 2.5. Числа Фибоначчи и списки.
@@ -75,10 +97,17 @@ fibs :: [Integer]
 fibs = 0 : 1 : zipWith (+) fibs (drop 1 fibs)
 
 isFib :: Integer -> Bool
-isFib = todo "2.5 is"
+isFib x = go fibs where
+  go = \case
+    [] -> error "impossible"
+    (f:fs) -> x == f || (f < x && go fs)
+    -- можно ещё через takeWhile + elem красиво
 
 countFibs :: [Integer] -> Int
-countFibs = todo "2.5 count"
+countFibs = countFibs 0 where
+  countFibs acc = \case
+    [] -> acc
+    x:xs -> countFibs (if isFib x then acc+1 else acc) xs
 
 
 -- 2.6. Скользящее окно.
@@ -90,8 +119,17 @@ countFibs = todo "2.5 count"
 -- Сигнатуру не меняйте.
 
 withWindow :: [a] -> Int -> [[a]]
-withWindow = todo "2.6"
-
+withWindow _ n | n <= 0 = error "n <= 0"
+withWindow [] _ = []
+withWindow (x0:xs0) n0 = case myTake (x0:xs0) n0 of
+  Nothing -> []
+  Just curr -> curr:withWindow xs0 n0
+  where
+  myTake _ 0 = Just []
+  myTake [] _ = Nothing
+  myTake (x:xs) n = case myTake xs (n-1) of
+    Nothing -> Nothing
+    Just r -> Just $ x:r
 
 -- 2.7. Сохраните проверенные опции в типе.
 --
@@ -115,4 +153,9 @@ data RawOptions = RawOptions Bool (Maybe Format) (Maybe FilePath)
   deriving (Eq, Show)
 
 parseOptions :: RawOptions -> Maybe Options
-parseOptions = todo "2.7"
+parseOptions = \case
+  RawOptions True Nothing Nothing -> Just Help
+  RawOptions False (Just fmt) mfp -> Just $ Run fmt case mfp of
+    Just fp -> File fp
+    Nothing -> Stdout
+  _ -> Nothing
