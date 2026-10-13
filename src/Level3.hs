@@ -74,16 +74,32 @@ merge l@(Just lt) r@(Just rt)
 
 infixl 9 !!?
 (!!?) :: DTree a -> Int -> Maybe a
-(!!?) = todo "3.1 lookup"
+(!!?) treeM ind = do
+  tree <- treeM
+  case treeLeft tree of
+    Just left | ind < treeSize left -> Just left !!? ind
+    leftM ->
+      let leftlen = maybe 0 treeSize leftM in
+      if ind == leftlen
+        then Just $ treeElem tree
+        else treeRight tree !!? (ind - leftlen - 1)
 
 append :: DTree a -> a -> Int -> DTree a
-append = todo "3.1 append"
+append tree el prio = merge tree $ singleton el prio
 
 insert :: Int -> a -> Int -> DTree a -> DTree a
-insert = todo "3.1 insert"
+insert i x k t =
+  let (a, b) = split i t
+  in a `merge` singleton x k `merge` b
 
 remove :: DTree a -> Int -> DTree a
-remove = todo "3.1 remove"
+remove t i =
+  let len = maybe 0 treeSize t in
+  if i >= 0 && i < len
+    then
+      let (a, b) = split i t
+      in a `merge` snd (split 1 b)
+  else t
 
 -- Подготовка входа для GHCi, не задача. Случайные приоритеты воспроизводимы:
 -- treeOf не меняет глобальный генератор. Команда: t <- treeOf [10,20,30].
